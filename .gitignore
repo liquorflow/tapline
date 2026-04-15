@@ -1,0 +1,14 @@
+# Javascript
+
+node_modules/
+yarn-error.log*
+.env.local
+*.swp
+.next/
+npm-debug.log*
+dist/
+yarn-debug.log*
+.cache/
+build/
+coverage/
+.env
