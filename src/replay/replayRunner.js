@@ -1,62 +1,39 @@
-/**
- * replayRunner.js
- * High-level runner that wires together scheduler, replayer, and reporting.
- */
-
-const { replaySequential, replayConcurrent } = require('./replayScheduler');
-const { summarizeResults, formatSummary } = require('./replayUtils');
+import { summarizeResults, formatSummary } from './replayUtils.js';
 
 /**
- * Run a full replay session.
- * @param {object[]} entries - Log entries to replay
- * @param {Function} replayFn - Function that sends a single request
- * @param {object} options
- * @param {string}  options.mode       - 'sequential' | 'concurrent' (default: 'sequential')
- * @param {number}  options.delay      - Delay between requests in ms
- * @param {boolean} options.preserveTiming
- * @param {number}  options.concurrency
- * @param {boolean} options.verbose    - Print per-request lines
- * @returns {Promise<{ results: object[], summary: object }>}
+ * Determines if an HTTP status code represents a failure.
+ * @param {number} status
+ * @returns {boolean}
  */
-async function runReplay(entries, replayFn, options = {}) {
-  const { mode = 'sequential', verbose = false } = options;
-
-  const wrappedFn = async (entry) => {
-    const start = Date.now();
-    try {
-      const result = await replayFn(entry);
-      const latency = Date.now() - start;
-      const out = { success: true, latency, status: result.status, entry };
-      if (verbose) {
-        console.log(`  [${result.status}] ${entry.method} ${entry.path} — ${latency}ms`);
-      }
-      return out;
-    } catch (err) {
-      const latency = Date.now() - start;
-      if (verbose) {
-        console.error(`  [ERR] ${entry.method} ${entry.path} — ${err.message}`);
-      }
-      return { success: false, latency, status: null, error: err.message, entry };
-    }
-  };
-
-  let results;
-  if (mode === 'concurrent') {
-    results = await replayConcurrent(entries, wrappedFn, options);
-  } else {
-    results = await replaySequential(entries, wrappedFn, options);
-  }
-
-  const summary = summarizeResults(results);
-  return { results, summary };
+export function isFailure(status) {
+  return status >= 400;
 }
 
 /**
- * Print a replay summary to stdout.
- * @param {object} summary
+ * Calculates the average duration from a list of results.
+ * @param {Array<{duration: number}>} results
+ * @returns {number}
  */
-function printSummary(summary) {
-  console.log('\nReplay complete — ' + formatSummary(summary));
+export function averageDuration(results) {
+  if (results.length === 0) return 0;
+  const total = results.reduce((sum, r) => sum + (r.duration || 0), 0);
+  return Math.round(total / results.length);
 }
 
-module.exports = { runReplay, printSummary };
+/**
+ * Prints a formatted summary of replay results to stdout.
+ * @param {Array<{status: number, url: string, duration: number}>} results
+ */
+export function printSummary(results) {
+  const total = results.length;
+  const failures = results.filter(r => isFailure(r.status)).length;
+  const successes = total - failures;
+  const avgMs = averageDuration(results);
+
+  console.log('--- Replay Summary ---');
+  console.log(`Total requests : ${total}`);
+  console.log(`Success        : ${successes}`);
+  console.log(`Fail           : ${failures}`);
+  console.log(`Avg duration   : ${avgMs}ms`);
+  console.log('----------------------');
+}
