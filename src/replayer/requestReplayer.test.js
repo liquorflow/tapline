@@ -64,6 +64,12 @@ describe('replayRequest', () => {
     await replayRequest(entry, { baseUrl, delayMs: 50 });
     expect(Date.now() - start).toBeGreaterThanOrEqual(50);
   });
+
+  test('result includes durationMs as a number', async () => {
+    const entry = { method: 'GET', path: '/timing', headers: {} };
+    const result = await replayRequest(entry, { baseUrl });
+    expect(typeof result.durationMs).toBe('number');
+  });
 });
 
 describe('replayAll', () => {
@@ -88,5 +94,10 @@ describe('replayAll', () => {
     expect(results[0].success).toBe(false);
     expect(results[0].error).toMatch('Cannot replay entry');
     expect(results[1].success).toBe(true);
+  });
+
+  test('returns empty array for empty entries list', async () => {
+    const results = await replayAll([], { baseUrl });
+    expect(results).toEqual([]);
   });
 });
