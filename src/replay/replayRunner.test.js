@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { printSummary } from './replayRunner.js';
 
 describe('printSummary', () => {
@@ -60,5 +60,13 @@ describe('printSummary', () => {
     printSummary(results);
     const output = consoleSpy.mock.calls.map(c => c[0]).join('\n');
     expect(output).toContain('2');
+  });
+
+  it('handles results with missing duration without crashing', () => {
+    const results = [
+      { status: 200, url: '/a' },
+      { status: 200, url: '/b', duration: 100 },
+    ];
+    expect(() => printSummary(results)).not.toThrow();
   });
 });
