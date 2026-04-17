@@ -60,4 +60,13 @@ function peakRate(entries, bucketMs = 1000) {
   return Math.max(...counts);
 }
 
-module.exports = { countPerBucket, limitByRate, averageRate, peakRate };
+/**
+ * Returns entries that were dropped by limitByRate, i.e. the throttled-out entries.
+ * Useful for debugging or logging how many requests were suppressed.
+ */
+function droppedByRate(entries, maxPerWindow, windowMs = 1000) {
+  const kept = new Set(limitByRate(entries, maxPerWindow, windowMs));
+  return entries.filter(e => !kept.has(e));
+}
+
+module.exports = { countPerBucket, limitByRate, averageRate, peakRate, droppedByRate };
