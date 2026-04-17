@@ -21,6 +21,7 @@ describe('truncateHead', () => {
   test('n=0 returns empty', () => expect(truncateHead(entries, 0)).toEqual([]));
   test('n > length returns all', () => expect(truncateHead(entries, 99)).toHaveLength(4));
   test('throws on invalid n', () => expect(() => truncateHead(entries, -1)).toThrow());
+  test('throws on non-integer n', () => expect(() => truncateHead(entries, 1.5)).toThrow());
 });
 
 describe('truncateTail', () => {
@@ -31,6 +32,7 @@ describe('truncateTail', () => {
   });
   test('n=0 returns empty', () => expect(truncateTail(entries, 0)).toEqual([]));
   test('throws on invalid n', () => expect(() => truncateTail(entries, -3)).toThrow());
+  test('throws on non-integer n', () => expect(() => truncateTail(entries, 2.9)).toThrow());
 });
 
 describe('truncateByLatency', () => {
@@ -45,6 +47,9 @@ describe('truncateByLatency', () => {
   test('skips entries without duration', () => {
     const mixed = [...entries, { path: '/e', status: 200 }];
     expect(truncateByLatency(mixed, 100)).toHaveLength(2);
+  });
+  test('maxMs=0 returns empty', () => {
+    expect(truncateByLatency(entries, 0)).toHaveLength(0);
   });
 });
 
