@@ -1,45 +1,48 @@
 # replay
 
-Utilities for replaying HTTP log entries against a live server, with scheduling, throttling, and result summarization.
+Utilities for scheduling, throttling, filtering, and summarizing HTTP log replay.
 
 ## Modules
 
 ### `replayScheduler.js`
-Schedules replay of log entries with configurable concurrency and ordering.
+Schedules replay of log entries with configurable concurrency and delay between requests.
 
 ### `replayRunner.js`
-Core runner — sends requests and collects pass/fail results.
-
-- `isFailure(result)` — returns true if the result status indicates an error
-- `averageDuration(results)` — computes mean duration across replay results
-- `printSummary(results)` — prints a formatted summary to stdout
+Core runner helpers: detect failures, compute average duration, print result summaries.
 
 ### `replayUtils.js`
-Shared utilities used across replay modules.
-
-- `sleep(ms)` — returns a promise that resolves after `ms` milliseconds
-- `summarizeResults(results)` — aggregates pass/fail/error counts
-- `formatSummary(summary)` — formats a summary object as a human-readable string
+Shared utilities: `sleep`, `summarizeResults`, `formatSummary`.
 
 ### `replayThrottle.js`
-Rate-limiting and concurrency control for replay execution.
-
-- `buildThrottleConfig(opts)` — builds a normalized throttle config from CLI or API options
-  - `opts.rps` — target requests per second (derives `delayMs` automatically)
-  - `opts.concurrency` — max number of concurrent in-flight requests (default: 1)
-  - `opts.delayMs` — explicit fixed delay between requests in ms
-- `createThrottle(config)` — returns a `{ run, stats }` throttle instance
-  - `run(fn)` — executes an async task if concurrency allows, otherwise returns `null`
-  - `stats()` — returns `{ active, completed, dropped }`
-- `runThrottled(tasks, config)` — runs an array of task functions through a throttle, returns `{ results, stats }`
-
-## Usage
+Rate-limits outgoing replay requests. Supports per-second and burst caps.
 
 ```js
-const { buildThrottleConfig, runThrottled } = require('./replayThrottle');
-
-const config = buildThrottleConfig({ rps: 5, concurrency: 2 });
-const tasks = entries.map(entry => () => fetch(entry.path));
-const { results, stats } = await runThrottled(tasks, config);
-console.log(`Completed: ${stats.completed}, Dropped: ${stats.dropped}`);
+const { createThrottle } = require('./replayThrottle');
+const throttle = createThrottle({ rps: 10, burst: 5 });
+await throttle.acquire();
 ```
+
+### `replayFilter.js`
+Filters entries before they are dispatched during replay.
+
+```js
+const { applyReplayFilters } = require('./replayFilter');
+
+const filtered = applyReplayFilters(entries, {
+  methods: ['GET', 'POST'],
+  statuses: [200, 201],
+  pathPattern: '^/api',
+  maxLatency: 500
+});
+```
+
+#### Filter options
+
+| Option        | Type       | Description                                      |
+|---------------|------------|--------------------------------------------------|
+| `methods`     | `string[]` | Allowed HTTP methods (case-insensitive)          |
+| `statuses`    | `number[]` | Allowed HTTP status codes                        |
+| `pathPattern` | `string`   | Regex or prefix matched against `entry.path`     |
+| `maxLatency`  | `number`   | Maximum `entry.duration` in ms to include        |
+
+All options are optional; omitting a filter passes all entries through.
