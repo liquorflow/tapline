@@ -29,6 +29,7 @@ function truncateTail(entries, n) {
  * @returns {object[]}
  */
 function truncateByLatency(entries, maxMs) {
+  if (typeof maxMs !== 'number' || maxMs < 0) throw new Error('maxMs must be a non-negative number');
   return entries.filter(e => typeof e.duration === 'number' && e.duration <= maxMs);
 }
 
@@ -40,6 +41,10 @@ function truncateByLatency(entries, maxMs) {
  * @returns {object[]}
  */
 function truncateByTimeWindow(entries, startMs, endMs) {
+  if (typeof startMs !== 'number' || typeof endMs !== 'number') {
+    throw new Error('startMs and endMs must be numbers');
+  }
+  if (startMs > endMs) throw new Error('startMs must be less than or equal to endMs');
   return entries.filter(e => {
     const t = new Date(e.timestamp).getTime();
     return t >= startMs && t <= endMs;
@@ -53,6 +58,7 @@ function truncateByTimeWindow(entries, startMs, endMs) {
  * @returns {object[]}
  */
 function truncateEntries(entries, opts = {}) {
+  if (!Array.isArray(entries)) throw new Error('entries must be an array');
   switch (opts.strategy) {
     case 'head':    return truncateHead(entries, opts.n);
     case 'tail':    return truncateTail(entries, opts.n);
