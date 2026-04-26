@@ -31,6 +31,17 @@ Collapses each time bucket into a single summary entry with averaged duration an
 const agg = resampleAggregate(entries, 60000); // 1-minute buckets
 ```
 
+### `resampleByCount(entries, bucketCount)`
+
+Divides entries into exactly `bucketCount` equal-sized time buckets, regardless of how many entries fall in each. Returns one representative entry per non-empty bucket using the `'first'` strategy.
+
+Useful when you want a fixed number of data points for charting without worrying about the interval duration.
+
+```js
+const { resampleByCount } = require('./logResampler');
+const chart = resampleByCount(entries, 50); // exactly 50 buckets
+```
+
 ## Formatters
 
 ```js
